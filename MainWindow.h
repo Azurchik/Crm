@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 
+#include "DatabaseController.h"
 #include "CrmTableModel.h"
 
 QT_BEGIN_NAMESPACE
@@ -18,7 +19,20 @@ public:
     ~MainWindow();
 
 private:
+    void delay(int msecs);
+
+    void readSettings();
+    void writeSettings();
+
+    void connections();
+
+private:
     Ui::MainWindow *ui;
+    DatabaseController mDb;
     CrmTableModel *mTModel;
+
+    // QWidget interface
+protected:
+    void closeEvent(QCloseEvent *event) override;
 };
 #endif // MAINWINDOW_H

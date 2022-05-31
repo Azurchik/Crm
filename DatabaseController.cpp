@@ -1,6 +1,7 @@
 #include "DatabaseController.h"
 
 #include <QDir>
+#include <QDate>
 #include <QDebug>
 #include <QFileInfo>
 #include <QApplication>
@@ -9,9 +10,10 @@
 #include <QSqlQuery>
 #include <QColor>
 
-DatabaseController::DatabaseController(QObject *parent)
-    : QObject (parent)
-    , mDatabase(QSqlDatabase::addDatabase("QSQLITE"))
+#include "CrmConsts.h"
+
+DatabaseController::DatabaseController()
+    : mDatabase(QSqlDatabase::addDatabase("QSQLITE"))
 {
     mDatabase.setDatabaseName(dbFilePath());
 
@@ -24,20 +26,120 @@ DatabaseController::DatabaseController(QObject *parent)
     }
 }
 
-QColor DatabaseController::clientColor(int idStatus) const
+int DatabaseController::contWorkers() const
 {
-    return {getColor("Cln_Status", idStatus)};
+    int res = 0;
+    QSqlQuery query(mDatabase);
+    query.prepare("SELECT COUNT(id) FROM Worker");
+
+    if (execQuery(query)) {
+        res = query.value(0).toInt();
+    }
+
+     return res;
 }
 
-QColor DatabaseController::recordColor(int idStatus) const
+void DatabaseController::initRecordList(QList<Rcrd> &list, int month, int year) const
 {
-    return {getColor("Rcd_Status", idStatus)};
+    QSqlQuery query(mDatabase);
+
+    query.prepare("SELECT *, Note.date,"
+                  "     Note.time, Client.name,"
+                  "     Service.name, Worker.name "
+                  "FROM Rcrd "
+                  "LEFT JOIN Note ON"
+                  "     Note.id = Rcrd.note_id "
+                  "LEFT JOIN Service ON"
+                  "     Service.id = Rcrd.srv_id "
+                  "LEFT JOIN Worker ON"
+                  "     Worker.id = Rcrd.work_id "
+                  "LEFT JOIN Client ON"
+                  "     Client.id = ("
+                  "         SELECT cln_id FROM Note"
+                  "         WHERE id = Rcrd.note_id ) "
+                  "WHERE note_id = ("
+                  "    SELECT id FROM Note"
+                  "    WHERE date LIKE '__.:month.:year'"
+                  "    ORDER BY date )");
+
+    if (month < 10) {
+        auto tMonth = '0' + QString::number(month);
+        query.bindValue(":month", tMonth);
+    }
+    else {
+        query.bindValue(":month", month);
+    }
+    query.bindValue(":year" , year);
+
+    if (!execQuery(query)) {
+        qWarning("Error while getting records. Date: %i.%i", month, year);
+        return;
+    }
+    if (!query.isValid()) {
+        qDebug("There are no records by the date: %i.%i", month, year);
+        return;
+    }
+
+    list.clear();    
+    do {
+        list.push_back({});
+        auto &item = list.last();
+
+        for (int i = 0; i < 5; ++i) {
+            item.ids[i] = query.value(i).toInt();
+        }
+
+        item.date = QDate::fromString(query.value(5).toString(), DateFormat);
+        item.time = QTime::fromString(query.value(6).toString(), TimeFormat);
+        item.client  = query.value(7).toString();
+        item.service = query.value(8).toString();
+    }
+    while (query.next());
+
+    for (auto &item : list) {
+        query.prepare("SELECT Rcd_Status.rgb,"
+                      "     Srv_Category.rgb,"
+                      "     Cln_Status.rgb "
+                      "FROM Rcrd "
+                      "LEFT JOIN Rcd_Status ON"
+                      "     Rcd_Status.id = Rcrd.stat_id "
+                      "LEFT JOIN Srv_Category ON"
+                      "     Srv_Category.id = Rcrd.srv_id "
+                      "LEFT JOIN Cln_Status ON"
+                      "     Cln_Status.id = ("
+                      "         SELECT stat_id FROM Client"
+                      "         WHERE id = ("
+                      "             SELECT cln_id FROM Note"
+                      "             WHERE id = Rcrd.note_id )) "
+                      "WHERE Rcrd.id = :id");
+        query.bindValue(":id", item.ids[Rcrd::Id]);
+
+        if (!execQuery(query)) {
+            qWarning("Error while getting color. id: %i",
+                     item.ids[Rcrd::Id]);
+            continue;
+        }
+
+        item.cRecord  = QColor{query.value(0).toString()};
+        item.cService = QColor{query.value(1).toString()};
+        item.cClient  = QColor{query.value(2).toString()};
+    }
 }
 
-QColor DatabaseController::serviceColor(int idStatus) const
-{
-    return {getColor("Srv_Category", idStatus)};
-}
+//QColor DatabaseController::clientColor(int idStatus) const
+//{
+//    return {getColor("Cln_Status", idStatus)};
+//}
+
+//QColor DatabaseController::recordColor(int idStatus) const
+//{
+//    return {getColor("Rcd_Status", idStatus)};
+//}
+
+//QColor DatabaseController::serviceColor(int idStatus) const
+//{
+//    return {getColor("Srv_Category", idStatus)};
+//}
 
 QString DatabaseController::dbDirName() const
 {
@@ -150,8 +252,10 @@ bool DatabaseController::execQuery(QSqlQuery &query) const
                 qPrintable(query.lastError().text()),
                 qPrintable(query.executedQuery())
                 );
+        return false;
     }
-    return query.next();
+    query.next();
+    return true;
 }
 
 QString DatabaseController::getColor(const QString &table, int idStatus) const
@@ -224,22 +328,22 @@ void DatabaseController::initTables()
     };
 
 
-    bff << table.arg("Cln_Status")      << val.arg("Usual", "a9a9a9")
-        << val.arg("Regular", "40ff00") << val.arg("Average", "ffff00")
-        << val.arg("Banned", "ff0040")  << val.arg("First Time", "ff00ff");
+    bff << table.arg("Cln_Status")      << val.arg("Usual", "#a9a9a9")
+        << val.arg("Regular", "#40ff00") << val.arg("Average", "#ffff00")
+        << val.arg("Banned", "#ff0040")  << val.arg("First Time", "#ff00ff");
 
     query.prepare(makeBff());
     execQuery(query);
 
-    bff << table.arg("Srv_Category")   << val.arg("Lashes", "0066ff")
-        << val.arg("MakeUp", "99ff99") << val.arg("Cosmetc", "ff66cc");
+    bff << table.arg("Srv_Category")   << val.arg("Lashes", "#0066ff")
+        << val.arg("MakeUp", "#99ff99") << val.arg("Cosmetc", "#ff66cc");
 
     query.prepare(makeBff());
     execQuery(query);
 
-    bff << table.arg("Rcd_Status")        << val.arg("General", "dcdcdc")
-        << val.arg("Completed", "b3ff66") << val.arg("Rejected", "cc0052")
-        << val.arg("Reserved", "9999ff");
+    bff << table.arg("Rcd_Status")        << val.arg("General", "#dcdcdc")
+        << val.arg("Completed", "#b3ff66") << val.arg("Rejected", "#cc0052")
+        << val.arg("Reserved", "#9999ff");
 
     query.prepare(makeBff());
     execQuery(query);

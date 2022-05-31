@@ -2,7 +2,7 @@ QT       += core gui sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 # You can make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
@@ -16,6 +16,7 @@ SOURCES += \
     widgets/MonthSpinBox.cpp
 
 HEADERS += \
+    CrmConsts.h \
     CrmTableModel.h \
     DatabaseController.h \
     MainWindow.h \

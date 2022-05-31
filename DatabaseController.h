@@ -5,15 +5,18 @@
 #include <QSqlDatabase>
 #include <QHash>
 
-class DatabaseController : public QObject
-{
-    Q_OBJECT    
-public:
-    explicit DatabaseController(QObject *parent = nullptr);
+#include <QColor>
+#include <QTime>
 
-    QColor clientColor(int idStatus) const;
-    QColor recordColor(int idStatus) const;
-    QColor serviceColor(int idStatus) const;
+struct Rcrd;
+
+class DatabaseController
+{  
+public:
+    DatabaseController();
+
+    int contWorkers() const;
+    void initRecordList(QList<Rcrd> &list, int month, int year) const;
 
     QString dbDirName() const;
     QString dbFileName() const;
@@ -29,5 +32,30 @@ private:
 
     QSqlDatabase mDatabase;
 };
+
+struct Rcrd
+{
+    QDate date;
+    QTime time;
+    QString client;
+    QString service;
+    QString worker;
+
+    QColor cClient  {Qt::white};
+    QColor cRecord  {Qt::white};
+    QColor cService {Qt::white};
+
+    int ids[5] = {0};
+
+    enum ID {
+        Id = 0,
+        NoteId,
+        WorkId,
+        SrvId,
+        StatId
+    };
+};
+
+
 
 #endif // DATABASECONTROLLER_H

@@ -3,7 +3,7 @@
 
 #include <QAbstractTableModel>
 #include <QDate>
-#include <QHash>
+#include <QMap>
 
 #include "DatabaseController.h"
 
@@ -12,14 +12,24 @@ class CrmTableModel : public QAbstractTableModel
     Q_OBJECT
 
 public:
-    explicit CrmTableModel(const QDate &date, QObject *parent = nullptr);
+    explicit CrmTableModel(const QDate &date, const DatabaseController &db,
+                           QObject *parent = nullptr);
+
+public slots:
+    void dateChanged(const QDate &date);
 
 private:
-    int weeksInMonth() const;
-    void initTable();
+    QList<Rcrd> &currRecords();
 
-    QDate mDate;
-    DatabaseController db;
+private:
+    QMap<int, QMap<int, QList<Rcrd>>> mRecords;
+    const DatabaseController &mDb;
+
+    int mYear;
+    int mMonth;
+    bool mHideWorker = true;
+
+
 
     // QAbstractItemModel interface
 public:
