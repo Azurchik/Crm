@@ -23,10 +23,10 @@ public slots:
     void resetTable();
 
 private:
-    void sortRecords(QList<Rcrd> &records);
+    void sortRecords(QList<Record> &records);
 
 private:
-    QList<Rcrd> mRecords;
+    QList<Record> mRecords;
     const DatabaseController &mDb;
 
     int  mYear;

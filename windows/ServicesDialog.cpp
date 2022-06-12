@@ -130,7 +130,7 @@ void ServicesDialog::onCatgRem()
 
     Btn btn = QMessageBox::warning(this,
                 QString("Deletion Category"),
-                QString("\tAre you sure you want to Delete the '%1'?\n\n")
+                QString("Are you sure you want to Delete the '%1'?\n\n")
                 .arg(ui->cBoxCatg->currentText())
                 + "All Servicies in this Category will be deleted.\n"
                   "You will not be able to undo this action!",
@@ -167,7 +167,7 @@ void ServicesDialog::onServAdd()
         int index = 0;
         {
             QString name = serv.name;
-            while (mDb.servByNameCatg(name, serv.categ_id) > 0) {
+            while (mDb.servIdByNameCatg(name, serv.categ_id) > 0) {
                 name = serv.name + QString::number(index++);
             }
             serv.name = name;

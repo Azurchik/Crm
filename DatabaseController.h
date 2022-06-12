@@ -8,7 +8,7 @@
 #include <QColor>
 #include <QTime>
 
-struct Rcrd;
+struct Record;
 struct Worker;
 struct Client;
 struct Status;
@@ -21,33 +21,43 @@ public:
     DatabaseController();
 
     Status getStatus(int id) const;
-    int categoryIdByName(const QString &name) const;
-    int servByNameCatg(const QString &name, int catg_id) const;
+    Record getRecord(int id) const;
 
+    int servIdByNameCatg(const QString &name, int catg_id) const;
+    int categoryIdByName(const QString &name) const;
+    int workerIdByName(const QString &name) const;
+
+    bool updateClient(const Client &cln);
+    bool updateWorker(const Worker &wrk);
+    bool updateRecord(const Record &rec);
     bool updateService(const Service &srv);
     bool updateCategory(const Category &ctg);
 
+    bool deleteClient(int id);
+    bool deleteWorker(int id);
     bool deleteRecord(int id);
     bool deleteService(int id);
     bool deleteCategory(int id);
 
-    bool addRecord(const Rcrd &rcd);
+    bool addRecord(const Record &rcd);
     bool addClient(const Client &cln);
+    bool addWorker(const Worker &wrk);
     bool addService(const Service &srv);
     bool addCategory(const Category &ctg);
 
     int  countWorkers() const;
-    void initRecordList(QList<Rcrd> &list, int month, int year) const;
+    void initRecordList(QList<Record> &list, int month, int year) const;
     void searchClientByName(const QString &name, QList<Client> &result) const;
     void searchClientByPhone(const QString &phone, QList<Client> &result,
                              bool wasStrongPhoneValidation ) const;
 
+    void loadClients(QList<Client> &list) const;
     void loadWorkers(QList<Worker> &list) const;
     void loadStatuses(QList<Status> &list, const QString &nTable) const;
     void loadServicies(QList<Service> &list) const;
     void loadCategories(QList<Category> &list) const;
-    void loadRecordsByClient(QList<Rcrd> &list, int clnId) const;
-    void loadServicesByCateg(QList<Service> &list, int ctgId) const;
+    void loadRecordsByClient(QList<Record> &list, int clnId) const;
+    void loadServicesByCateg(QList<Service> &list, int ctgId) const;    
 
     Category category(int id) const;
 
@@ -110,7 +120,7 @@ struct Client {
     QDate dateReg = QDate::currentDate();
 };
 
-struct Rcrd
+struct Record
 {
     int id[5] = {0};
 

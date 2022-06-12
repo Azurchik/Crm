@@ -20,10 +20,10 @@ CrmTableModel::CrmTableModel(const QDate &date, const DatabaseController &db, QO
 
 int CrmTableModel::recordIdByRow(int row) const
 {
-    if (row < 0 && row >= mRecords.size()) {
+    if (row < 0 || row >= mRecords.size()) {
         return -1;
     }
-    return mRecords[row].id[Rcrd::Id];
+    return mRecords[row].id[Record::Id];
 }
 
 void CrmTableModel::dateChanged(const QDate &date)
@@ -67,9 +67,9 @@ QString CrmTableModel::getStatusesInfo()
 }
 
 
-void CrmTableModel::sortRecords(QList<Rcrd> &records)
+void CrmTableModel::sortRecords(QList<Record> &records)
 {
-    std::sort(records.begin(), records.end(), [](const Rcrd &r1, const Rcrd &r2) {
+    std::sort(records.begin(), records.end(), [](const Record &r1, const Record &r2) {
         if (r1.date == r2.date) {
             return r1.time < r2.time;
         }
@@ -129,20 +129,20 @@ QVariant CrmTableModel::data(const QModelIndex &index, int role) const
     }
     else if (role == Qt::BackgroundRole)
     {
-        return mDb.colorByRcrdId(record.id[Rcrd::Id]);
+        return mDb.colorByRcrdId(record.id[Record::Id]);
     }
     else if (role == Qt::DecorationRole) {
         if (mHideWorker) {
             switch (index.column())
             {
-            case 3: return mDb.colorBySrvcId(record.id[Rcrd::SrvId]);
-            case 4: return mDb.colorByClntId(record.id[Rcrd::ClnId]);
+            case 3: return mDb.colorBySrvcId(record.id[Record::SrvId]);
+            case 4: return mDb.colorByClntId(record.id[Record::ClnId]);
             }
         } else {
             switch (index.column())
             {
-            case 4: return mDb.colorBySrvcId(record.id[Rcrd::SrvId]);
-            case 5: return mDb.colorByClntId(record.id[Rcrd::ClnId]);
+            case 4: return mDb.colorBySrvcId(record.id[Record::SrvId]);
+            case 5: return mDb.colorByClntId(record.id[Record::ClnId]);
             }
         }
     }

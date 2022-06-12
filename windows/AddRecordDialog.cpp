@@ -4,6 +4,7 @@
 #include "ClientDialog.h"
 #include "Consts.h"
 
+#include <QCloseEvent>
 #include <QMessageBox>
 #include <QSettings>
 #include <QDebug>
@@ -22,7 +23,7 @@ AddRecordDialog::AddRecordDialog(DatabaseController &db, QWidget *parent)
     for (auto &ctg: qAsConst(mSrvCategs)) {
         ui->cBoxCateg->addItem(ctg.name);
     }
-    loadServicies();
+    loadServices();
 
     mDb.loadWorkers(mWorkers);
     for (auto &wrk: qAsConst(mWorkers)) {
@@ -53,31 +54,31 @@ void AddRecordDialog::setDate(const QDate &date)
     ui->dateEdit->setDate(nDate);
 }
 
-Rcrd AddRecordDialog::getRecord() const
+Record AddRecordDialog::getRecord() const
 {
-    Rcrd res;
+    Record res;
     res.date = ui->dateEdit->date();
     res.time = ui->timeEdit->time();
 
     int index = ui->cBoxServ->currentIndex();
     if (ui->gBoxService->isChecked() && index != -1) {
-        res.id[Rcrd::SrvId]  = mServices.at(index).id;
+        res.id[Record::SrvId]  = mServices.at(index).id;
     }
 
     index = ui->tableClients->currentRow();
     if (index >= 0 && index < mClients.size())
     {
-        res.id[Rcrd::ClnId]  = mClients.at(index).id;
+        res.id[Record::ClnId]  = mClients.at(index).id;
     }
 
     index = ui->cBoxWorker->currentIndex();
     if (index != -1) {
-        res.id[Rcrd::WorkId] = mWorkers.at(index).id;
+        res.id[Record::WorkId] = mWorkers.at(index).id;
     }
 
     index = ui->cBoxStatus->currentIndex();
     if (index != -1) {
-        res.id[Rcrd::StatId] = mStatuses.at(index).id;
+        res.id[Record::StatId] = mStatuses.at(index).id;
     }
 
     return res;
@@ -89,7 +90,7 @@ void AddRecordDialog::openClientWindow(QTableWidgetItem *item)
         int row = item->row();
 
         if (row != -1) {
-            auto clnDialog = new ClientDialog(&mDb, mClients.at(row), this);
+            auto clnDialog = new ClientDialog(mDb, mClients.at(row), this);
             clnDialog->setModal(false);
             clnDialog->open();
         }
@@ -162,7 +163,7 @@ void AddRecordDialog::search()
 
 void AddRecordDialog::createClient()
 {
-    auto clnDialog = new ClientDialog (&mDb, this);
+    auto clnDialog = new ClientDialog (mDb, this);
     if (clnDialog->exec() == QDialog::Accepted)
     {
         auto cln = clnDialog->clientFromUi();
@@ -184,13 +185,17 @@ void AddRecordDialog::createClient()
                 ui->tableClients->selectRow(0);
             }
         }
+        else {
+            QMessageBox::warning(this, "Db Error",
+                                 "Can't create new Client!");
+        }
     }
 }
 
 void AddRecordDialog::connections()
 {
     connect(ui->cBoxCateg, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &AddRecordDialog::loadServicies);
+            this, &AddRecordDialog::loadServices);
 
     connect(ui->pBtnSearch, &QPushButton::clicked,
             this, &AddRecordDialog::search);
@@ -229,10 +234,10 @@ void AddRecordDialog::connections()
 void AddRecordDialog::closeEvent(QCloseEvent *event)
 {
     writeSettings();
+    event->accept();
 }
 
-
-void AddRecordDialog::loadServicies()
+void AddRecordDialog::loadServices()
 {
     ui->cBoxServ->clear();
     mServices.clear();

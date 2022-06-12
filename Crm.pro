@@ -15,7 +15,10 @@ SOURCES += \
     main.cpp \
     MainWindow.cpp \
     windows/ClientDialog.cpp \
-    windows/ServicesDialog.cpp
+    windows/FindClientDialog.cpp \
+    windows/RecordDialog.cpp \
+    windows/ServicesDialog.cpp \
+    windows/WorkersDialog.cpp
 
 HEADERS += \
     Consts.h \
@@ -24,13 +27,19 @@ HEADERS += \
     DatabaseController.h \
     MainWindow.h \
     windows/ClientDialog.h \
-    windows/ServicesDialog.h
+    windows/FindClientDialog.h \
+    windows/RecordDialog.h \
+    windows/ServicesDialog.h \
+    windows/WorkersDialog.h
 
 FORMS += \
     windows/AddRecordDialog.ui \
     MainWindow.ui \
     windows/ClientDialog.ui \
-    windows/ServicesDialog.ui
+    windows/FindClientDialog.ui \
+    windows/RecordDialog.ui \
+    windows/ServicesDialog.ui \
+    windows/WorkersDialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

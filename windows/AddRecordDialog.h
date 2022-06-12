@@ -2,6 +2,7 @@
 #define ADDRECORDDIALOG_H
 
 #include <QDialog>
+
 #include "DatabaseController.h"
 
 class QTableWidgetItem;
@@ -19,7 +20,7 @@ public:
     ~AddRecordDialog();
 
     void setDate(const QDate &date);
-    Rcrd getRecord() const;
+    Record getRecord() const;
 
 private slots:
     void openClientWindow(QTableWidgetItem *item);
@@ -28,7 +29,7 @@ private slots:
     void loadPreview();
     void search();
     void createClient();
-    void loadServicies();
+    void loadServices();
     void onAccepted();
 
 private:

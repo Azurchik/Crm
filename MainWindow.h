@@ -22,9 +22,12 @@ public:
     void removeRecord();
 
 private slots:
+    void recordDialog(const QModelIndex &index);
     void updateStatusBar();
 
-    void actionsDatabase();
+    void servicesDb();
+    void workersDb();
+    void clientsDb();
 
 private:
     void delay(int msecs);

@@ -5,41 +5,46 @@
 
 #include "Consts.h"
 
-ClientDialog::ClientDialog(QWidget *parent)
+
+ClientDialog::ClientDialog(const DatabaseController &db, const Client &cln,
+                           QWidget *parent, bool isRead)
+    : QDialog(parent)
+    , ui(new Ui::ClientDialog)
+    , mClient(cln)
+{
+    ui->setupUi(this);
+
+    ui->pEditDescr->setReadOnly(isRead);
+    ui->lEditPhone->setReadOnly(isRead);
+    ui->lEditName->setReadOnly(isRead);
+    ui->dateEdit->setReadOnly(isRead);
+    ui->cBoxStatus->setDisabled(isRead);
+
+    using Btn = QDialogButtonBox::StandardButton;
+
+    if (isRead) {
+        ui->lblStatus->setText("Status: " + db.getStatus(cln.stat_id).name);
+        ui->buttonBox->setStandardButtons(Btn::Cancel);
+    }
+    else {
+        loadStatuses(db);
+    }
+    clientToUi(cln);
+
+    loadRecords(db, cln.id);
+
+    connect(ui->buttonBox, &QDialogButtonBox::clicked,
+            this, &ClientDialog::onButtonsClicked);
+}
+
+
+// Create Client Dialog
+ClientDialog::ClientDialog(const DatabaseController &db, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ClientDialog)
 {
     ui->setupUi(this);
 
-    connect(ui->buttonBox, &QDialogButtonBox::clicked,
-            this, &ClientDialog::onAccepted);
-}
-
-// ReadOnly Dialog
-ClientDialog::ClientDialog(const DatabaseController *db, const Client &cln, QWidget *parent)
-    : ClientDialog(parent)
-{
-    ui->pEditDescr->setReadOnly(true);
-    ui->lEditPhone->setReadOnly(true);
-    ui->lEditName->setReadOnly(true);
-    ui->dateEdit->setReadOnly(true);
-
-    using Btn = QDialogButtonBox::StandardButton;
-
-    ui->buttonBox->setStandardButtons(Btn::Cancel);
-
-    loadStatuses(db);
-    clientToUi(cln);
-
-    ui->cBoxStatus->setDisabled(true);
-    loadRecords(db, cln.id);
-}
-
-
-// Create Client Dialog
-ClientDialog::ClientDialog(const DatabaseController *db, QWidget *parent)
-    : ClientDialog(parent)
-{
     ui->lblRecords->hide();
     ui->tableRecords->hide();
 
@@ -49,9 +54,11 @@ ClientDialog::ClientDialog(const DatabaseController *db, QWidget *parent)
     ui->dateEdit->setDate(QDate::currentDate());
     ui->buttonBox->setStandardButtons(Btn::Ok | Btn::Cancel);
 
-
     loadStatuses(db);
     ui->cBoxStatus->setCurrentIndex(mStats.size() - 1);
+
+    connect(ui->buttonBox, &QDialogButtonBox::clicked,
+            this, &ClientDialog::onButtonsClicked);
 }
 
 ClientDialog::~ClientDialog()
@@ -97,23 +104,21 @@ int ClientDialog::statIndexById(int id) const
     return -1;
 }
 
-void ClientDialog::loadStatuses(const DatabaseController *db)
+void ClientDialog::loadStatuses(const DatabaseController &db)
 {
-    if (db != nullptr) {
-        db->loadStatuses(mStats, "Client");
+    db.loadStatuses(mStats, "Client");
 
-        for (auto &stat : qAsConst(mStats)) {
-            ui->cBoxStatus->addItem(stat.name);
-        }
+    for (auto &stat : qAsConst(mStats)) {
+        ui->cBoxStatus->addItem(stat.name);
     }
 }
 
-void ClientDialog::loadRecords(const DatabaseController *db, int clnId)
+void ClientDialog::loadRecords(const DatabaseController &db, int clnId)
 {
-    QList<Rcrd> list;
-    db->loadRecordsByClient(list, clnId);
+    QList<Record> list;
+    db.loadRecordsByClient(list, clnId);
 
-    std::sort(list.begin(), list.end(), [](const Rcrd &r1, const Rcrd &r2) {
+    std::sort(list.begin(), list.end(), [](const Record &r1, const Record &r2) {
         if (r1.date == r2.date) {
             return r1.time > r2.time;
         }
@@ -124,7 +129,7 @@ void ClientDialog::loadRecords(const DatabaseController *db, int clnId)
 
     int row = 0;
     while (list.size() > 0) {
-        Rcrd unit = list.takeFirst();
+        Record unit = list.takeFirst();
 
         for (int col = 0; col < ui->tableRecords->columnCount(); ++col) {
             QString title;
@@ -133,27 +138,27 @@ void ClientDialog::loadRecords(const DatabaseController *db, int clnId)
             switch (col) {
             case 0:
                 title = unit.status;
-                color = db->colorByRcrdId(unit.id[Rcrd::Id]);
+                color = db.colorByRcrdId(unit.id[Record::Id]);
                 break;
             case 1:
                 title = unit.date.toString(TableDateFormat);
-                color = db->colorByRcrdId(unit.id[Rcrd::Id]);
+                color = db.colorByRcrdId(unit.id[Record::Id]);
                 break;
             case 2:
                 title = unit.time.toString(TimeFormat);
-                color = db->colorByRcrdId(unit.id[Rcrd::Id]);
+                color = db.colorByRcrdId(unit.id[Record::Id]);
                 break;
             case 3:
                 title = unit.worker;
-                color = db->colorByRcrdId(unit.id[Rcrd::Id]);
+                color = db.colorByRcrdId(unit.id[Record::Id]);
                 break;
             case 4:
                 title = unit.service;
-                color = db->colorBySrvcId(unit.id[Rcrd::SrvId]);
+                color = db.colorBySrvcId(unit.id[Record::SrvId]);
                 break;
             case 5:
                 title = unit.client + ' '  + unit.phone;
-                color = db->colorByClntId(unit.id[Rcrd::ClnId]);
+                color = db.colorByClntId(unit.id[Record::ClnId]);
                 break;
             }
 
@@ -175,21 +180,28 @@ void ClientDialog::clientToUi(const Client &cln)
     ui->cBoxStatus->setCurrentIndex(statIndexById(cln.id));
 }
 
-void ClientDialog::onAccepted(QAbstractButton *button)
+void ClientDialog::onButtonsClicked(QAbstractButton *button)
 {
     using Btn = QDialogButtonBox::StandardButton;
 
-    Btn btn = ui->buttonBox->standardButton(button);
-
-    if (btn == Btn::Ok)
-    {
+    switch (ui->buttonBox->standardButton(button)) {
+    case Btn::Ok:
+    case Btn::SaveAll:
         if (ui->lEditName->text().isEmpty()) {
-            QMessageBox::warning(this, "Error Creating Client",
-                                 "Please, enter the name for Creating Client!");
+            QMessageBox::warning(this, "Error Client",
+                                 "Please, enter the name for new Client!");
         }
         else {
             accept();
         }
+        break;
+
+    case Btn::Reset:
+        clientToUi(mClient);
+        break;
+
+    default:
+        return;
     }
 
 }

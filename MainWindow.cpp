@@ -8,8 +8,11 @@
 #include <QSqlRelationalTableModel>
 
 #include "Consts.h"
+#include "windows/FindClientDialog.h"
 #include "windows/AddRecordDialog.h"
 #include "windows/ServicesDialog.h"
+#include "windows/WorkersDialog.h"
+#include "windows/RecordDialog.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -63,15 +66,44 @@ void MainWindow::removeRecord()
     }
 }
 
+void MainWindow::recordDialog(const QModelIndex &index)
+{
+    if (!index.isValid()) {
+        return;
+    }
+
+    auto dialog = new RecordDialog(mDb, this);
+    dialog->initRecord(mTModel->recordIdByRow(index.row()));
+
+    if (dialog->exec() == QDialog::Accepted) {
+        mTModel->resetTable();
+    }
+}
+
 void MainWindow::updateStatusBar()
 {
     ui->statusbar->showMessage(mTModel->getStatusesInfo());
 }
 
-void MainWindow::actionsDatabase()
+void MainWindow::servicesDb()
 {
     auto dialog = ServicesDialog(mDb, this);
     dialog.exec();
+    mTModel->resetTable();
+}
+
+void MainWindow::workersDb()
+{
+    auto dialog = WorkersDialog(mDb, this);
+    dialog.exec();
+    mTModel->resetTable();
+}
+
+void MainWindow::clientsDb()
+{
+    auto dialog = FindClientDialog(mDb, this);
+    dialog.exec();
+    mTModel->resetTable();
 }
 
 void MainWindow::delay(int msecs)
@@ -134,6 +166,9 @@ void MainWindow::writeSettings()
 
 void MainWindow::connections()
 {
+    connect(ui->tableView, &QTableView::doubleClicked,
+            this, &MainWindow::recordDialog);
+
     connect(ui->dateEdit, &QDateEdit::dateChanged,
             mTModel, &CrmTableModel::dateChanged);
 
@@ -148,7 +183,13 @@ void MainWindow::connections()
 
 // Tab Actions:
     connect(ui->actionServices, &QAction::triggered,
-            this, &MainWindow::actionsDatabase);
+            this, &MainWindow::servicesDb);
+
+    connect(ui->actionWorkers, &QAction::triggered,
+            this, &MainWindow::workersDb);
+
+    connect(ui->actionClients, &QAction::triggered,
+            this, &MainWindow::clientsDb);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)

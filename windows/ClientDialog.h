@@ -16,10 +16,9 @@ class ClientDialog : public QDialog
 {
     Q_OBJECT
 public:
-    explicit ClientDialog(QWidget *parent = nullptr); // Default
-
-    explicit ClientDialog(const DatabaseController *db, QWidget *parent); // Creation
-    explicit ClientDialog(const DatabaseController *db, const Client &cln, QWidget *parent = nullptr); // ReadOnly
+    explicit ClientDialog(const DatabaseController &db, QWidget *parent); // Creation
+    explicit ClientDialog(const DatabaseController &db, const Client &cln,
+                          QWidget *parent = nullptr, bool isRead = true);
     ~ClientDialog();
 
     Client clientFromUi() const;
@@ -28,16 +27,17 @@ public:
 
 private:
     void clientToUi(const Client &cln);
-    void onAccepted(QAbstractButton *button);
+    void onButtonsClicked(QAbstractButton *button);
 
     int  statIndexById(int id) const;
-    void loadStatuses(const DatabaseController *db);
-    void loadRecords(const DatabaseController *db, int clnId);
+    void loadStatuses(const DatabaseController &db);
+    void loadRecords(const DatabaseController &db, int clnId);
 
-private:
+private:    
     QList<Status> mStats;
 
     Ui::ClientDialog *ui;
+    const Client mClient = {};
 };
 
 #endif // CLIENTDIALOG_H
