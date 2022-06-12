@@ -18,13 +18,21 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void addRecord();
+    void removeRecord();
+
+private slots:
+    void updateStatusBar();
+
+    void actionsDatabase();
+
 private:
     void delay(int msecs);
 
     void readSettings();
     void writeSettings();
 
-    void connections();
+    void connections();       
 
 private:
     Ui::MainWindow *ui;

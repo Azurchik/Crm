@@ -15,20 +15,23 @@ public:
     explicit CrmTableModel(const QDate &date, const DatabaseController &db,
                            QObject *parent = nullptr);
 
+    int recordIdByRow(int row) const;
+    QString getStatusesInfo();
+
 public slots:
     void dateChanged(const QDate &date);
+    void resetTable();
 
 private:
-    QList<Rcrd> &currRecords();
+    void sortRecords(QList<Rcrd> &records);
 
 private:
-    QMap<int, QMap<int, QList<Rcrd>>> mRecords;
+    QList<Rcrd> mRecords;
     const DatabaseController &mDb;
 
-    int mYear;
-    int mMonth;
+    int  mYear;
+    int  mMonth;
     bool mHideWorker = true;
-
 
 
     // QAbstractItemModel interface

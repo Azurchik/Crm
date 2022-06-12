@@ -4,8 +4,9 @@
 #include <QBrush>
 #include <QLocale>
 #include <QApplication>
+#include <QDebug>
 
-#include "CrmConsts.h"
+#include "Consts.h"
 
 CrmTableModel::CrmTableModel(const QDate &date, const DatabaseController &db, QObject *parent)
     : QAbstractTableModel {parent}
@@ -13,8 +14,16 @@ CrmTableModel::CrmTableModel(const QDate &date, const DatabaseController &db, QO
     , mYear {date.year()}
     , mMonth {date.month()}
 {
-    mDb.initRecordList(currRecords(), mMonth, mYear);
+    mDb.initRecordList(mRecords, mMonth, mYear);
+    sortRecords(mRecords);
+}
 
+int CrmTableModel::recordIdByRow(int row) const
+{
+    if (row < 0 && row >= mRecords.size()) {
+        return -1;
+    }
+    return mRecords[row].id[Rcrd::Id];
 }
 
 void CrmTableModel::dateChanged(const QDate &date)
@@ -28,16 +37,44 @@ void CrmTableModel::dateChanged(const QDate &date)
     mYear = date.year();
     mMonth = date.month();
 
+    resetTable();
+}
+
+void CrmTableModel::resetTable()
+{
     beginResetModel();
-    if (currRecords().isEmpty()) {
-        mDb.initRecordList(currRecords(), mMonth, mYear);
-    }
+
+    mDb.initRecordList(mRecords, mMonth, mYear);
+    sortRecords(mRecords);
+
     endResetModel();
 }
 
-QList<Rcrd> &CrmTableModel::currRecords()
+QString CrmTableModel::getStatusesInfo()
 {
-    return mRecords[mYear][mMonth];
+    QMap<QString, int> statInfo;
+    for (auto &rcrd : qAsConst(mRecords)) {
+        statInfo[rcrd.status] += 1;
+    }
+
+    QString res;
+    for (auto it = statInfo.begin(); it != statInfo.end(); ++it) {
+        res += QString("%1=%2\t")
+                .arg(it.key()).arg(it.value());
+    }
+
+    return res;
+}
+
+
+void CrmTableModel::sortRecords(QList<Rcrd> &records)
+{
+    std::sort(records.begin(), records.end(), [](const Rcrd &r1, const Rcrd &r2) {
+        if (r1.date == r2.date) {
+            return r1.time < r2.time;
+        }
+        return r1.date < r2.date;
+    });
 }
 
 
@@ -47,7 +84,7 @@ int CrmTableModel::rowCount(const QModelIndex &parent) const
         return 0;
     }
 
-    return mRecords[mYear][mMonth].size();
+    return mRecords.size();
 }
 
 int CrmTableModel::columnCount(const QModelIndex &parent) const
@@ -56,7 +93,7 @@ int CrmTableModel::columnCount(const QModelIndex &parent) const
         return 0;
     }
 
-    return mHideWorker ? 4 : 5;
+    return mHideWorker ? 5 : 6;
 }
 
 QVariant CrmTableModel::data(const QModelIndex &index, int role) const
@@ -65,36 +102,48 @@ QVariant CrmTableModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    auto currRow = [&]() -> const Rcrd& {
-        return mRecords[mYear][mMonth].at(index.row());
-    };
+    auto record = mRecords.at(index.row());
 
-    if (role == Qt::DisplayRole) {
-        auto &record = currRow();
-
-        switch (index.column()) {
-        case 0: return record.date.toString("dd ddd");
-        case 1: return record.time.toString(TimeFormat);
-        case 2: return record.client;
-        case 3: return mHideWorker ? record.service : record.worker;
-        case 4: return record.service;
+    if (role == Qt::DisplayRole)
+    {
+        if (mHideWorker) {
+            switch (index.column())
+            {
+            case 0: return record.status;
+            case 1: return record.date.toString(TableDateFormat);
+            case 2: return record.time.toString(TimeFormat);
+            case 3: return record.service;
+            case 4: return record.client + ' '  + record.phone;
+            }
+        } else {
+            switch (index.column())
+            {
+            case 0: return record.status;
+            case 1: return record.date.toString(TableDateFormat);
+            case 2: return record.time.toString(TimeFormat);
+            case 3: return record.worker;
+            case 4: return record.service;
+            case 5: return record.client + ' '  + record.phone;
+            }
         }
     }
-    else if (role == Qt::BackgroundRole) {
-        auto &record = currRow();
-
-        switch (index.column()) {
-        case 0:
-        case 1: return QBrush{record.cRecord};
-        }
+    else if (role == Qt::BackgroundRole)
+    {
+        return mDb.colorByRcrdId(record.id[Rcrd::Id]);
     }
     else if (role == Qt::DecorationRole) {
-        auto &record = currRow();
-
-        switch (index.column()) {
-        case 2: return QBrush{record.cClient};
-        case 3: return mHideWorker ? QBrush{record.cService} : QBrush{};
-        case 4: return QBrush{record.cService};
+        if (mHideWorker) {
+            switch (index.column())
+            {
+            case 3: return mDb.colorBySrvcId(record.id[Rcrd::SrvId]);
+            case 4: return mDb.colorByClntId(record.id[Rcrd::ClnId]);
+            }
+        } else {
+            switch (index.column())
+            {
+            case 4: return mDb.colorBySrvcId(record.id[Rcrd::SrvId]);
+            case 5: return mDb.colorByClntId(record.id[Rcrd::ClnId]);
+            }
         }
     }
 
@@ -103,15 +152,26 @@ QVariant CrmTableModel::data(const QModelIndex &index, int role) const
 
 QVariant CrmTableModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-//        return QLocale(QLocale::English).standaloneDayName(section + 1).toUpper();
     if (orientation == Qt::Horizontal) {
         if (role == Qt::DisplayRole) {
-            switch (section) {
-            case 0: return "Day";
-            case 1: return "Time";
-            case 2: return mHideWorker ? "Service" : "Worker";
-            case 3: return mHideWorker ? "Client"  : "Service";
-            case 4: return "Client";
+            if (mHideWorker) {
+                switch (section) {
+                case 0: return "Status";
+                case 1: return "Day";
+                case 2: return "Time";
+                case 3: return "Service";
+                case 4: return "Client";
+                }
+            }
+            else {
+                switch (section) {
+                case 0: return "Status";
+                case 1: return "Day";
+                case 2: return "Time";
+                case 3: return "Worker";
+                case 4: return "Service";
+                case 5: return "Client";
+                }
             }
         }
         else if (role == Qt::FontRole) {
@@ -121,9 +181,6 @@ QVariant CrmTableModel::headerData(int section, Qt::Orientation orientation, int
 
             return font;
         }
-//        else if (role == Qt::BackgroundRole) {
-//            return QBrush(Qt::lightGray, Qt::SolidPattern);
-//        }
     }
 
     return QVariant();

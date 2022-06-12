@@ -9,21 +9,28 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    windows/AddRecordDialog.cpp \
     CrmTableModel.cpp \
     DatabaseController.cpp \
     main.cpp \
     MainWindow.cpp \
-    widgets/MonthSpinBox.cpp
+    windows/ClientDialog.cpp \
+    windows/ServicesDialog.cpp
 
 HEADERS += \
-    CrmConsts.h \
+    Consts.h \
+    windows/AddRecordDialog.h \
     CrmTableModel.h \
     DatabaseController.h \
     MainWindow.h \
-    widgets/MonthSpinBox.h
+    windows/ClientDialog.h \
+    windows/ServicesDialog.h
 
 FORMS += \
-    MainWindow.ui
+    windows/AddRecordDialog.ui \
+    MainWindow.ui \
+    windows/ClientDialog.ui \
+    windows/ServicesDialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
