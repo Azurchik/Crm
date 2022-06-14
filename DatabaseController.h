@@ -1,12 +1,10 @@
 #ifndef DATABASECONTROLLER_H
 #define DATABASECONTROLLER_H
 
-#include <QObject>
 #include <QSqlDatabase>
-#include <QHash>
-
 #include <QColor>
 #include <QTime>
+#include <QDate>
 
 struct Record;
 struct Worker;
@@ -20,8 +18,9 @@ class DatabaseController
 public:
     DatabaseController();
 
-    Status getStatus(int id) const;
-    Record getRecord(int id) const;
+    Status  getStatus(int id) const;
+    Record  getRecord(int id) const;
+    Service getService(int id) const;
 
     int servIdByNameCatg(const QString &name, int catg_id) const;
     int categoryIdByName(const QString &name) const;
@@ -65,18 +64,16 @@ public:
     QColor colorByClntId(int id) const;
     QColor colorBySrvcId(int id) const;
 
+private:
     QString dbDirName()  const;
     QString dbFileName() const;
     QString dbFilePath() const;
     QString dbCreateScheme() const;
 
-private:
     bool execQuery(QSqlQuery &query) const;
-    bool selectQuery(QSqlQuery &query) const;
 
-    QString getColor(const QString &table, int idStatus) const;
-    void createDatabase();
     void initTables();
+    void createDatabase();
 
     QSqlDatabase mDatabase;
 };
@@ -107,8 +104,6 @@ struct Category {
     int id = 0;
     QString name;
     QColor rgb;
-
-//    Category& operator= (const Category &other);
 };
 
 struct Client {
@@ -132,7 +127,7 @@ struct Record
     QString worker;
     QString status;    
 
-    enum identifier {
+    enum Identifier {
         Id = 0,
         ClnId,
         WorkId,

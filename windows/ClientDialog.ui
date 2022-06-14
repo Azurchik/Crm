@@ -70,7 +70,7 @@
       </sizepolicy>
      </property>
      <property name="inputMask">
-      <string>(\0DD)-999-9999</string>
+      <string>(\0D9)-999-9999</string>
      </property>
      <property name="text">
       <string>(0)--</string>

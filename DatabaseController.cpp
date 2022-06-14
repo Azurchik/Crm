@@ -37,7 +37,7 @@ Status DatabaseController::getStatus(int id) const
                   "WHERE id = :id");
     query.bindValue(":id", id);
 
-    if (!execQuery(query) && query.isValid()) {
+    if (!execQuery(query) || !query.isValid()) {
         return {};
     }
 
@@ -56,15 +56,27 @@ Record DatabaseController::getRecord(int id) const
     }
 
     QSqlQuery query(mDatabase);
-    query.prepare("SELECT * FROM Rcrd "
-                  "WHERE id = :id");
+    query.prepare(
+                "SELECT Rcrd.*, Client.name, "
+                "    Client.phone, Worker.name, "
+                "    Service.name, Status.name "
+                "FROM Rcrd "
+                "LEFT JOIN Client ON"
+                "     Client.id = Rcrd.cln_id "
+                "LEFT JOIN Service ON"
+                "     Service.id = Rcrd.srv_id "
+                "LEFT JOIN Worker ON"
+                "     Worker.id = Rcrd.work_id "
+                "LEFT JOIN Status ON"
+                "     Status.id = Rcrd.stat_id "
+                "WHERE Rcrd.id = :id");
     query.bindValue(":id", id);
 
-    if (!execQuery(query) && query.isValid()) {
+    if (!execQuery(query) || !query.isValid()) {
         return {};
     }
 
-    Record item;
+    Record item = {};
     for (int i = 0; i < 5; ++i) {
         item.id[i] = query.value(i).toInt();
     }
@@ -78,6 +90,31 @@ Record DatabaseController::getRecord(int id) const
     item.status  = query.value(11).toString();
 
     return item;
+}
+
+Service DatabaseController::getService(int id) const
+{
+    if (id <= 0) {
+        return {};
+    }
+
+    QSqlQuery query(mDatabase);
+    query.prepare("SELECT * FROM Service "
+                  "WHERE id = :id");
+    query.bindValue(":id", id);
+
+    if (!execQuery(query) || !query.isValid()) {
+        return {};
+    }
+
+    return {
+        query.value(0).toInt(),
+        query.value(1).toString(),
+        query.value(2).toInt(),
+        query.value(3).toFloat(),
+        QDate::fromString(query.value(4).toString(),
+                                          DateFormat)
+    };
 }
 
 int DatabaseController::servIdByNameCatg(const QString &name,
@@ -357,15 +394,24 @@ bool DatabaseController::deleteCategory(int id)
 bool DatabaseController::addRecord(const Record &rcd)
 {
     QSqlQuery query(mDatabase);
-    QString preparation = "INSERT INTO Rcrd (cln_id, work_id, srv_id, "
-                          "stat_id, time, date) VALUES ";
-    preparation += QString("(%1, %2, %3, %4, \'%5\', \'%6\')")
-            .arg(rcd.id[Record::ClnId]).arg(rcd.id[Record::WorkId])
-            .arg(rcd.id[Record::SrvId]).arg(rcd.id[Record::StatId])
-            .arg(rcd.time.toString(TimeFormat), rcd.date.toString(DateFormat));
+//    QString preparation = "INSERT INTO Rcrd (cln_id, work_id, srv_id, "
+//                          "stat_id, time, date) VALUES ";
+//    preparation += QString("(%1, %2, %3, %4, \'%5\', \'%6\')")
+//            .arg(rcd.id[Record::ClnId]).arg(rcd.id[Record::WorkId])
+//            .arg(rcd.id[Record::SrvId]).arg(rcd.id[Record::StatId])
+//            .arg(rcd.time.toString(TimeFormat), rcd.date.toString(DateFormat));
 
 
-    query.prepare(preparation);
+//    query.prepare(preparation);
+    query.prepare("INSERT INTO Rcrd "
+                  "(cln_id, work_id, srv_id, stat_id, time, date) "
+                  "VALUES (:id, :wrk, :srv, :stat, :time, :date)");
+    query.bindValue(":id" , rcd.id[Record::ClnId]);
+    query.bindValue(":wrk", rcd.id[Record::WorkId]);
+    query.bindValue(":srv", rcd.id[Record::SrvId]);
+    query.bindValue(":stat", rcd.id[Record::StatId]);
+    query.bindValue(":time", rcd.time.toString(TimeFormat));
+    query.bindValue(":date", rcd.date.toString(DateFormat));
 
     if (!execQuery(query)) {
         qWarning() << "Error while adding new Record!";
@@ -420,7 +466,7 @@ bool DatabaseController::addService(const Service &srv)
 
     query.bindValue(":name" , srv.name);
     query.bindValue(":catg" , srv.categ_id);
-    query.bindValue(":date" , srv.dateReg);
+    query.bindValue(":date" , srv.dateReg.toString(DateFormat));
     query.bindValue(":price", srv.price);
 
     if (!execQuery(query)) {
@@ -481,10 +527,10 @@ void DatabaseController::initRecordList(QList<Record> &list, int month, int year
 
     if (month < 10) {
         auto tMonth = '0' + QString::number(month);
-        preparation += values.arg(tMonth).arg(year % 100);
+        preparation += values.arg(tMonth).arg(year /*% 100*/);
     }
     else {
-        preparation += values.arg(month).arg(year % 100);
+        preparation += values.arg(month).arg(year /*% 100*/);
     }
 
     query.prepare(preparation);
@@ -1029,34 +1075,6 @@ bool DatabaseController::execQuery(QSqlQuery &query) const
     }
     query.next();
     return true;
-}
-
-bool DatabaseController::selectQuery(QSqlQuery &query) const
-{
-    if (!query.exec() && !query.isValid()) {
-        qWarning("Error executing query \n[%s]\n[%s]!",
-                qPrintable(query.lastError().text()),
-                qPrintable(query.executedQuery())
-                );
-        return false;
-    }
-//    else if (query.size())
-//    query.next();
-    return true;
-}
-
-QString DatabaseController::getColor(const QString &table, int idStatus) const
-{
-    QSqlQuery query(mDatabase);
-    query.prepare("SELECT rgb FROM :table WHERE id = :id");
-    query.bindValue(":table", table);
-    query.bindValue(":id", idStatus);
-
-    if (execQuery(query)) {
-        return query.value(0).toString();
-    }
-
-    return {};
 }
 
 void DatabaseController::createDatabase()

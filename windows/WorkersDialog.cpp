@@ -97,6 +97,7 @@ void WorkersDialog::add()
     else {
         mWorkers << wrk;
         mIsCreate = true;
+        ui->tableWorkers->setRowCount(mWorkers.size());
         ui->tableWorkers->setItem(mWorkers.size() - 1, 0,
                                   new QTableWidgetItem(wrk.name));
         mIsCreate = false;

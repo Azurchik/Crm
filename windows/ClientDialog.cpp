@@ -69,6 +69,8 @@ ClientDialog::~ClientDialog()
 Client ClientDialog::clientFromUi() const
 {
     Client cl;
+    cl.id = mClient.id;
+
     cl.dateReg = ui->dateEdit->date();
     cl.name    = ui->lEditName->text();
     cl.phone   = ui->lEditPhone->text();

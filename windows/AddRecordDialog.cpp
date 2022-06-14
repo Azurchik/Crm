@@ -102,7 +102,7 @@ void AddRecordDialog::handleSearchType()
     switch(ui->cBoxSearch->currentIndex()) {
     case 1:
         ui->lblSearch->setText("Client Phone:");
-        ui->lEditSearch->setInputMask("(\\0DD)-999-9999");
+        ui->lEditSearch->setInputMask("(\\0D9)-999-9999");
         break;
     case 0:
         ui->lblSearch->setText("Client Name:");

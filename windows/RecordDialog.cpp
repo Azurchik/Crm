@@ -61,18 +61,9 @@ void RecordDialog::initRecord(int id)
     ui->timeEdit->setTime(mRec.time);
     ui->dateEdit->setDate(mRec.date);
 
-    if (mRec.id[Record::StatId] != 0) {
+    if (mRec.id[Record::SrvId] != 0) {
         ui->gBoxService->setChecked(true);
-        Service _srv;
-
-        int sIndex = 0;
-        for (auto &serv : mServices) {
-            if (serv.id == mRec.id[Record::StatId]) {
-                _srv = serv;
-                break;
-            }
-            ++sIndex;
-        }
+        Service _srv = mDb.getService(mRec.id[Record::SrvId]);
 
         int index = 0;
         for (auto &catg : mCategories) {
@@ -82,21 +73,31 @@ void RecordDialog::initRecord(int id)
             }
             ++index;
         }
-        ui->cBoxServ->setCurrentIndex(sIndex);
+
+        index = 0;
+        for (auto &serv : mServices) {
+            if (serv.id == _srv.id) {
+                ui->cBoxServ->setCurrentIndex(index);
+                break;
+            }
+            ++index;
+        }
+
     }
 
     int index = 0;
     for (auto &stat : mStatuses) {
         if (stat.id == mRec.id[Record::StatId]) {
             ui->cBoxStatus->setCurrentIndex(index);
+            break;
         }
         ++index;
     }
 
     index = 0;
-    for (auto &stat : mWorkers) {
-        if (stat.id == mRec.id[Record::WorkId]) {
-            ui->cBoxStatus->setCurrentIndex(index);
+    for (auto &work : mWorkers) {
+        if (work.id == mRec.id[Record::WorkId]) {
+            ui->cBoxWorker->setCurrentIndex(index);
         }
         ++index;
     }

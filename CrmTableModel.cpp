@@ -16,6 +16,8 @@ CrmTableModel::CrmTableModel(const QDate &date, const DatabaseController &db, QO
 {
     mDb.initRecordList(mRecords, mMonth, mYear);
     sortRecords(mRecords);
+
+    mHideWorker = mDb.countWorkers() <= 1;
 }
 
 int CrmTableModel::recordIdByRow(int row) const
@@ -46,6 +48,8 @@ void CrmTableModel::resetTable()
 
     mDb.initRecordList(mRecords, mMonth, mYear);
     sortRecords(mRecords);
+
+    mHideWorker = mDb.countWorkers() <= 1;
 
     endResetModel();
 }
